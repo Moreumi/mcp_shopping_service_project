@@ -1,0 +1,27 @@
+[
+  {
+    "id": "women_black_shoes",
+    "steps": ["검은색 여성 운동화 추천해줘"],
+    "expect": {"mode": "search", "products": 3, "category": "Shoes", "audience": "Women", "color": "Black"}
+  },
+  {
+    "id": "men_office_shoes",
+    "steps": ["남성용 출근 구두 찾아줘"],
+    "expect": {"mode": "search", "products": 3, "category": "Shoes", "audience": "Men"}
+  },
+  {
+    "id": "women_daily_bag",
+    "steps": ["여성용 데일리 가방 추천해줘"],
+    "expect": {"mode": "search", "products": 3, "category": "Bags", "audience": "Women"}
+  },
+  {
+    "id": "followup_compare",
+    "steps": ["여성용 운동화 추천해줘", "추천 상품들의 차이점을 비교해줘"],
+    "expect": {"mode": "compare", "products": 3}
+  },
+  {
+    "id": "recent_orders",
+    "steps": ["최근 주문 내역 보여줘"],
+    "expect": {"mode": "orders", "minimum_orders": 1}
+  }
+]

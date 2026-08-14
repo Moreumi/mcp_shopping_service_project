@@ -1,0 +1,25 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "CustomerServiceDemoTablesFullAccess",
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:CreateTable",
+        "dynamodb:DescribeTable",
+        "dynamodb:GetItem",
+        "dynamodb:PutItem",
+        "dynamodb:UpdateItem",
+        "dynamodb:DeleteItem",
+        "dynamodb:Query",
+        "dynamodb:Scan",
+        "dynamodb:BatchWriteItem"
+      ],
+      "Resource": [
+        "arn:aws:dynamodb:us-east-1:<AWS_ACCOUNT_ID>:table/customer-service-demo-orders",
+        "arn:aws:dynamodb:us-east-1:<AWS_ACCOUNT_ID>:table/customer-service-demo-payments",
+        "arn:aws:dynamodb:us-east-1:<AWS_ACCOUNT_ID>:table/customer-service-demo-refunds"
+      ]
+    }
+  ]
+}
