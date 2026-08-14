@@ -1,0 +1,141 @@
+import json
+import re
+from typing import Dict, Any, List
+
+class CustomerServiceEngine:
+    """
+    쇼핑몰 CS 민원 및 문의를 분석하고, 현장 정책/규정에 기반한 명확하고 정중한 대처 가이드를 제공하는 분석 시스템
+    """
+    def __init__(self):
+        # 요청받은 6가지 주요 문의 및 브랜드 즉각 대처 모듈 데이터베이스
+        self.kb = {
+            "환불_정책": {
+                "keywords": ["환불", "반품", "취소", "가이드라인"],
+                "response": (
+                    "[환불 정책 가이드라인 안내]\n"
+                    "1. 단변 변심 환불: 수령 후 7일 이내 신청 가능 (왕복 배송비 고객 부담)\n"
+                    "2. 상품 하자/오배송: 수령 후 30일 이내 또는 사실을 안 날로부터 30일 이내 (배송비 브랜드 부담)\n"
+                    "3. 불가 사유: 착용/세탁/수선 흔적이 있거나 택(Tag) 제거, 상품 가치가 훼손된 경우\n"
+                    "※ 참고: 교환/반품 배송비는 시스템 자동 차감 후 차액 환불 처리됩니다."
+                )
+            },
+            "포인트_기준": {
+                "keywords": ["포인트", "적립", "브랜드마다"],
+                "response": (
+                    "[브랜드별 포인트 적립 기준 안내]\n"
+                    "브랜드별 운영 정책 및 회원 등급에 따라 적립률에 차이가 있습니다.\n"
+                    "- 자사 대표 브랜드: 결제 금액의 3% 기본 적립 (리뷰 작성 시 최대 5,000p 추가)\n"
+                    "- 입점 파트너 브랜드: 브랜드별 약정에 따라 1~5% 차등 적립\n"
+                    "※ [마이페이지 > 혜택 안내]에서 브랜드별 정확한 적립 기준을 확인하실 수 있습니다."
+                )
+            },
+            "배송비_해결책": {
+                "keywords": ["배송비", "불필요", "추가 구매", "불편"],
+                "response": (
+                    "[배송비 절감 및 전용 소품 보충 솔루션]\n"
+                    "무료배송 기준 금액을 맞추기 위해 불필요한 고가 제품을 구매하는 불편을 줄이기 위해\n"
+                    "1) 1,000원~5,000원 대의 '무료배송 채우기 전용 악세서리/양말/케어용품 탭'을 제공합니다.\n"
+                    "2) 정기 구독 회원 및 첫 구매 고객 전용 무료배송 쿠폰 혜택을 함께 운영 중입니다."
+                )
+            },
+            "표준_사이즈": {
+                "keywords": ["규격", "사이즈", "맞을 지", "표준"],
+                "response": (
+                    "[표준 사이즈 단일 가이드 및 측정 서비스 안내]\n"
+                    "브랜드별 실측 차이를 최소화하기 위해 당사는 단면 실측 기준 표준 가이드(S, M, L)를 제공합니다.\n"
+                    "또한, 키/체중/평소 입으시는 사이즈를 입력하시면 데이터 기반으로 최적의 핏을 안내해 드리는\n"
+                    "'AI 사이즈 추천 가이드'를 이용하실 수 있습니다.\n"
+                    "※ 안내해 드리는 사이즈는 참고용 가이드이며, 개별 체형이나 원단 특성에 따라 착용감 차이가 발생할 수 있습니다."
+                )
+            },
+            "실물_색감": {
+                "keywords": ["조명", "색감", "사진", "실제"],
+                "response": (
+                    "[실물 색감 및 보정 표준 안내]\n"
+                    "촬영 조명 및 모니터 해상도에 따른 차이를 줄이기 위해,\n"
+                    "상세페이지 하단에 스튜디오 조명이 배제된 '자연광 촬영 컷' 및 '실물 원단 상세 줌인 컷(Swatch)'을 필수로 제공합니다.\n"
+                    "실물 색상은 조명 컷보다 한 톤 다운된 자연스러운 원색에 가깝습니다."
+                )
+            },
+            "친환경_패키징": {
+                "keywords": ["비닐", "스티로폼", "환경호르몬", "친환경"],
+                "response": (
+                    "[친환경 패키징 및 안심 소재 안내]\n"
+                    "당사는 포장재 감축을 위해 생분해성 옥수수 수지(PLA) 포장 비닐과 재생 종이 포장재를 적용 중입니다.\n"
+                    "또한, OEKO-TEX Class 1 친환경 인증 및 유기농 오가닉 코튼 100% 소재 제품 카테고리를 구성하여\n"
+                    "환경호르몬 및 유해물질 배출을 최소화한 제품 라인업을 제공해 드립니다."
+                )
+            },
+            "브랜드_즉각대응": {
+                "keywords": ["즉각적", "대응", "답변", "참고", "대처"],
+                "response": (
+                    "[브랜드 파트너용 표준 CS 대처 매뉴얼 및 자동화 기능]\n"
+                    "■ 환불 요청 시 브랜드 표준 프로토콜:\n"
+                    " 1. [접수 단계]: 즉시 수거 지시 및 단순 변심/하자 여부에 따른 배송비 자동 계산 안내\n"
+                    " 2. [검수 단계]: 물류센터 입고 즉시 상품 상태 실시간 검수 (태그 훼손/착용 흔적 확인)\n"
+                    " 3. [완료 단계]: 정상 검수 완료 시 자동 결제 취소 처리 및 알림톡 발송"
+                )
+            }
+        }
+
+    def analyze_and_respond(self, user_query: str) -> Dict[str, Any]:
+        matched_category = "일반_문의"
+        matched_response = "문의하신 내용에 대해 담당자가 확인 후 안내해 드리겠습니다."
+        highest_score = 0
+
+        for category, data in self.kb.items():
+            score = 0
+            for kw in data["keywords"]:
+                if kw in user_query:
+                    score += 1
+            if score > highest_score:
+                highest_score = score
+                matched_category = category
+                matched_response = data["response"]
+
+        return {
+            "query": user_query,
+            "category": matched_category,
+            "score": highest_score,
+            "response": matched_response
+        }
+
+    def process_batch(self, queries: List[str]) -> List[Dict[str, Any]]:
+        results = []
+        for idx, q in enumerate(queries, 1):
+            res = self.analyze_and_respond(q)
+            res["id"] = idx
+            results.append(res)
+        return results
+
+
+if __name__ == "__main__":
+    user_queries = [
+        "환불 정책 가이드라인을 일목요연하게 제시해주실 수 있나요?",
+        "적립되는 포인트 기준이 브랜드마다 다른가요? 어떻게 다른지도 궁금합니다.",
+        "배송비를 채우기 위해 불필요한 물건을 추가 구매해야 하는 불편함이 발생하는데 이에 대한 해결책이 필요할 것 같습니다.",
+        "브랜드마다 규격이 달라 이 옷의 사이즈가 저랑 잘 맞을 지 의문입니다. 혹시 표준 사이즈로 별도로 제공 가능할까요?",
+        "사진에는 색감을 강하게 하는 조명이 들어간 걸로 보이는데, 실제 색감은 어떤지 구체적으로 설명해줄래요?",
+        "비닐과 스티로폼이 너무 많이 나오는데 환경호르몬이 적게 나오는 상품을 원해요. 이를 배출하는 요소가 적게 들어간 제품은 없나요?",
+        "브랜드에서 고객의 서비스를 즉각적으로 대응해주고 답변하는 기능도 추가하고 싶어. 예를 들면 고객이 환불할 때 어떤 브랜드에서 어떻게 대처를 하는 지 참고가 필요해."
+    ]
+
+    engine = CustomerServiceEngine()
+    processed_data = engine.process_batch(user_queries)
+
+    print("=" * 80)
+    print("      [쇼핑몰 CS 시스템 - 문의 분석 및 표준 대처 로직 결과]")
+    print("=" * 80)
+    
+    for item in processed_data:
+        print(f"\n[문의 #{item['id']}] 카테고리: {item['category']}")
+        print(f"질문: {item['query']}")
+        print("-" * 70)
+        print(f"{item['response']}")
+        print("=" * 80)
+
+    output_filename = "cs_response_export.json"
+    with open(output_filename, "w", encoding="utf-8") as f:
+        json.dump(processed_data, f, ensure_ascii=False, indent=4)
+
+    print(f"\n[알림] 분석 및 대처 데이터가 '{output_filename}' 파일로 저장되었습니다.")
