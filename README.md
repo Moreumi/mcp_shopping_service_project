@@ -1,0 +1,1 @@
+# mcp_shopping_service_project
